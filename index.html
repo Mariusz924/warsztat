@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Warsztatowy | Chmura Firebase</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #d35400;
+            --bg: #f4f6f7;
+            --panel: #ffffff;
+            --border: #bdc3c7;
+            --danger: #c0392b;
+            --warning-bg: #fdf2e9;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: var(--bg); color: #333; }
+        header { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        header h1 { margin: 0; font-size: 1.4rem; }
+        nav button { background: transparent; border: 1px solid white; color: white; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        nav button.active { background: var(--accent); border-color: var(--accent); }
+        
+        .container { padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        h2 { margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
+        h3 { color: var(--primary); margin-top: 15px; margin-bottom: 10px; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+
+        button.btn-primary { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button.btn-primary:hover { opacity: 0.9; }
+        button.btn-secondary { background: #7f8c8d; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button.btn-secondary:hover { opacity: 0.9; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid var(--border); padding: 10px; text-align: left; }
+        th { background-color: var(--bg); color: var(--primary); }
+
+        tr.brak-na-stanie { background-color: var(--warning-bg); }
+        .badge-brak { background-color: var(--danger); color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; display: inline-block; }
+        .badge-ok { background-color: #27ae60; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; display: inline-block; }
+
+        .section-box { background: #f8f9fa; border: 1px dashed var(--border); padding: 15px; border-radius: 4px; margin-bottom: 15px; }
+
+        #status-sync { font-size: 0.85rem; background: #27ae60; color: white; padding: 4px 10px; border-radius: 12px; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="no-print">
+    <h1>System Warsztatowy <span id="status-sync">☁️ Połączono z chmurą</span></h1>
+    <nav>
+        <button class="tab-btn active" onclick="switchTab('tab-magazyn', this)">Magazyn Części</button>
+        <button class="tab-btn" onclick="switchTab('tab-wz', this)">Wystaw WZ</button>
+        <button class="tab-btn" onclick="switchTab('tab-historia', this)">Historia WZ</button>
+        <button class="tab-btn" onclick="switchTab('tab-szybkie', this)">Dopisane pozycje</button>
+        <button class="tab-btn" onclick="switchTab('tab-ustawienia', this)">Ustawienia Wystawcy</button>
+    </nav>
+</header>
+
+<div class="container no-print">
+
+    <!-- ZAKŁADKA 1: MAGAZYN -->
+    <div id="tab-magazyn" class="tab-content active">
+        <div class="card">
+            <h2>Dodaj nową część / filtr do bazy</h2>
+            <form id="form-dodaj-towar">
+                <div class="grid-3">
+                    <div class="form-group">
+                        <label>Nazwa części / Filtra</label>
+                        <input type="text" id="nazwa" placeholder="np. Filtr Oleju Filtron OP570" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Kod własny / SKU</label>
+                        <input type="text" id="sku" placeholder="np. FO-OP570" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Numery zamienników / OEM</label>
+                        <input type="text" id="zamienniki" placeholder="np. W712/94, OC264">
+                    </div>
+                </div>
+                <div class="grid-3">
+                    <div class="form-group">
+                        <label>Ilość na stanie</label>
+                        <input type="number" id="ilosc" min="0" value="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Cena netto (zł)</label>
+                        <input type="number" step="0.01" id="cena" value="0.00" required>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button type="submit" class="btn-primary" style="width: 100%;">Dodaj do magazynu</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Stan Magazynowy (Wspólny dla komputerów)</h2>
+            <div class="form-group">
+                <input type="text" id="szukaj-magazyn" placeholder="Szukaj po nazwie, kodzie SKU lub numerze zamiennika..." onkeyup="renderMagazyn()">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Kod SKU</th>
+                        <th>Nazwa części</th>
+                        <th>Zamienniki / OEM</th>
+                        <th>Ilość / Stan</th>
+                        <th>Cena netto</th>
+                        <th>Akcja</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-magazyn"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ZAKŁADKA 2: WYSTAWIANIE / EDYCJA WZ -->
+    <div id="tab-wz" class="tab-content">
+        <div class="card">
+            <h2 id="naglowek-wz">Wystaw Dokument WZ (Wydanie Zewnętrzne)</h2>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Odbiorca / Klient</label>
+                    <input type="text" id="wz-odbiorca" placeholder="Imię i nazwisko / Firma">
+                </div>
+                <div class="form-group">
+                    <label>Pojazd / Nr Rejestracyjny / VIN</label>
+                    <input type="text" id="wz-pojazd" placeholder="np. VW Golf VII - WI 12345">
+                </div>
+            </div>
+
+            <div class="section-box">
+                <h3>Opcja A: Wybierz z magazynu</h3>
+                <div class="grid-3">
+                    <div class="form-group">
+                        <label>Wybierz część z magazynu</label>
+                        <select id="wz-wybor-towaru"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ilość</label>
+                        <input type="number" id="wz-ilosc-dodaj" min="1" value="1">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button type="button" class="btn-primary" onclick="dodajDoKoszykaWZ()" style="width: 100%;">Dodaj z magazynu</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-box">
+                <h3>Opcja B: Wpisz rzecz / usługę spoza magazynu</h3>
+                <div class="grid-3">
+                    <div class="form-group">
+                        <label>Nazwa usługi lub części</label>
+                        <input type="text" id="wz-custom-nazwa" placeholder="np. Wymiana oleju / Uszczelka" list="szybkie-podpowiedzi">
+                        <datalist id="szybkie-podpowiedzi"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>Ilość</label>
+                        <input type="number" id="wz-custom-ilosc" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Cena netto (zł)</label>
+                        <input type="number" step="0.01" id="wz-custom-cena" value="0.00">
+                    </div>
+                </div>
+                <button type="button" class="btn-secondary" onclick="dodajCustomDoKoszykaWZ()">+ Dodaj pozycję niestandardową</button>
+            </div>
+
+            <h3>Pozycje na dokumencie WZ:</h3>
+            <table style="margin-bottom: 20px;">
+                <thead>
+                    <tr>
+                        <th>Nazwa towaru / usługi</th>
+                        <th>Typ</th>
+                        <th>Ilość</th>
+                        <th>Cena netto</th>
+                        <th>Wartość netto</th>
+                        <th>Usuń</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-koszyk-wz"></tbody>
+            </table>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn-primary" onclick="zatwierdzWZ()" style="font-size: 1.1rem; padding: 12px 25px;">Zatwierdź i Generuj Dokument WZ</button>
+                <button type="button" id="btn-anuluj-edycje" class="btn-secondary" onclick="anulujEdycjeWZ()" style="display: none; font-size: 1.1rem; padding: 12px 25px;">Anuluj edycję</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ZAKŁADKA 3: HISTORIA -->
+    <div id="tab-historia" class="tab-content">
+        <div class="card">
+            <h2>Wystawione Dokumenty WZ</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Numer WZ</th>
+                        <th>Data</th>
+                        <th>Odbiorca</th>
+                        <th>Pojazd</th>
+                        <th>Akcje</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-historia-wz"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ZAKŁADKA 4: SZYBKIE POZYCJE -->
+    <div id="tab-szybkie" class="tab-content">
+        <div class="card">
+            <h2>Zapisane pozycje niestandardowe / usługi</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nazwa rzeczy / usługi</th>
+                        <th>Ostatnia cena netto</th>
+                        <th>Akcje</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-szybkie"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ZAKŁADKA 5: USTAWIENIA -->
+    <div id="tab-ustawienia" class="tab-content">
+        <div class="card">
+            <h2>Dane Wystawcy (Twojego Warsztatu)</h2>
+            <form id="form-wystawca" onsubmit="zapiszWystawce(event)">
+                <div class="form-group">
+                    <label>Nazwa Firmy / Warsztatu</label>
+                    <input type="text" id="wystawca-nazwa">
+                </div>
+                <div class="form-group">
+                    <label>Adres</label>
+                    <input type="text" id="wystawca-adres">
+                </div>
+                <div class="form-group">
+                    <label>NIP</label>
+                    <input type="text" id="wystawca-nip">
+                </div>
+                <button type="submit" class="btn-primary">Zapisz Dane Wystawcy</button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<div id="print-area"></div>
+
+<!-- SKRYPTY FIREBASE DO PRACY W CHMURZE -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCDa9DNH1DMqe9-egc4gKzuF7s451mke54",
+        authDomain: "warsztat-wz.firebaseapp.com",
+        projectId: "warsztat-wz",
+        storageBucket: "warsztat-wz.firebasestorage.app",
+        messagingSenderId: "830604436398",
+        appId: "1:830604436398:web:120e9e6e5565565f04de3f",
+        measurementId: "G-3KB797CHG7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const docRef = doc(db, "warsztat", "glowna_baza");
+
+    window.magazyn = [];
+    window.dokumentyWZ = [];
+    window.szybkiePozycje = [];
+    window.wystawca = { nazwa: 'Warsztat Samochodowy', adres: '', nip: '' };
+    window.koszykWZ = [];
+    window.edytowanyWZId = null;
+
+    // Synchronizacja w czasie rzeczywistym między komputerami
+    onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            window.magazyn = data.magazyn || [];
+            window.dokumentyWZ = data.dokumentyWZ || [];
+            window.szybkiePozycje = data.szybkiePozycje || [];
+            window.wystawca = data.wystawca || window.wystawca;
+
+            window.renderMagazyn();
+            window.renderHistoria();
+            window.renderSzybkie();
+            window.wczytajWystawce();
+            window.loadSelectTowar();
+            window.loadDatalist();
+        } else {
+            window.saveToCloud();
+        }
+    });
+
+    window.saveToCloud = async function() {
+        try {
+            await setDoc(docRef, {
+                magazyn: window.magazyn,
+                dokumentyWZ: window.dokumentyWZ,
+                szybkiePozycje: window.szybkiePozycje,
+                wystawca: window.wystawca
+            });
+        } catch (e) {
+            console.error("Błąd zapisu w chmurze:", e);
+        }
+    }
+</script>
+
+<script>
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        if(btn) btn.classList.add('active');
+
+        if(tabId === 'tab-wz') { loadSelectTowar(); loadDatalist(); }
+        if(tabId === 'tab-historia') renderHistoria();
+        if(tabId === 'tab-szybkie') renderSzybkie();
+        if(tabId === 'tab-ustawienia') wczytajWystawce();
+    }
+
+    function wczytajWystawce() {
+        document.getElementById('wystawca-nazwa').value = wystawca.nazwa || '';
+        document.getElementById('wystawca-adres').value = wystawca.adres || '';
+        document.getElementById('wystawca-nip').value = wystawca.nip || '';
+    }
+
+    function zapiszWystawce(e) {
+        e.preventDefault();
+        wystawca.nazwa = document.getElementById('wystawca-nazwa').value.trim();
+        wystawca.adres = document.getElementById('wystawca-adres').value.trim();
+        wystawca.nip = document.getElementById('wystawca-nip').value.trim();
+        saveToCloud();
+        alert('Dane wystawcy zapisane w chmurze!');
+    }
+
+    document.getElementById('form-dodaj-towar').addEventListener('submit', function(e) {
+        e.preventDefault();
+        magazyn.push({
+            id: Date.now(),
+            nazwa: document.getElementById('nazwa').value,
+            sku: document.getElementById('sku').value,
+            zamienniki: document.getElementById('zamienniki').value,
+            ilosc: parseInt(document.getElementById('ilosc').value),
+            cena: parseFloat(document.getElementById('cena').value)
+        });
+        saveToCloud();
+        this.reset();
+    });
+
+    function renderMagazyn() {
+        const tbody = document.getElementById('tabela-magazyn');
+        const query = (document.getElementById('szukaj-magazyn').value || '').toLowerCase();
+        tbody.innerHTML = '';
+
+        magazyn.filter(item => 
+            item.nazwa.toLowerCase().includes(query) || 
+            item.sku.toLowerCase().includes(query) || 
+            (item.zamienniki && item.zamienniki.toLowerCase().includes(query))
+        ).forEach(item => {
+            const czyBrak = item.ilosc <= 0;
+            tbody.innerHTML += `
+                <tr class="${czyBrak ? 'brak-na-stanie' : ''}">
+                    <td><b>${item.sku}</b></td>
+                    <td>${item.nazwa}</td>
+                    <td><small>${item.zamienniki || '-'}</small></td>
+                    <td>${czyBrak ? '<span class="badge-brak">BRAK (0)</span>' : `<span class="badge-ok">${item.ilosc} szt.</span>`}</td>
+                    <td>${item.cena.toFixed(2)} zł</td>
+                    <td>
+                        <button onclick="zmienStan(${item.id})">+ / - Stan</button>
+                        <button onclick="usunZMagazynu(${item.id})">Usuń</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function zmienStan(id) {
+        const item = magazyn.find(i => i.id === id);
+        if(!item) return;
+        const nowaIlosc = prompt(`Zmień ilość na stanie dla: ${item.nazwa}`, item.ilosc);
+        if(nowaIlosc !== null) {
+            const val = parseInt(nowaIlosc);
+            if(!isNaN(val) && val >= 0) {
+                item.ilosc = val;
+                saveToCloud();
+            }
+        }
+    }
+
+    function usunZMagazynu(id) {
+        if(confirm('Usuń ten towar ze wspólnej bazy?')) {
+            magazyn = magazyn.filter(i => i.id !== id);
+            saveToCloud();
+        }
+    }
+
+    function loadSelectTowar() {
+        const select = document.getElementById('wz-wybor-towaru');
+        select.innerHTML = '';
+        if(magazyn.length === 0) { select.innerHTML = '<option value="">(Brak towarów)</option>'; return; }
+        magazyn.forEach(item => {
+            select.innerHTML += `<option value="${item.id}">${item.nazwa} | Stan: ${item.ilosc} szt. | [${item.zamienniki || ''}]</option>`;
+        });
+    }
+
+    function loadDatalist() {
+        const datalist = document.getElementById('szybkie-podpowiedzi');
+        datalist.innerHTML = '';
+        szybkiePozycje.forEach(p => {
+            datalist.innerHTML += `<option value="${p.nazwa}">Cena: ${p.cena.toFixed(2)} zł</option>`;
+        });
+    }
+
+    document.getElementById('wz-custom-nazwa').addEventListener('input', function(e) {
+        const znaleziona = szybkiePozycje.find(s => s.nazwa.toLowerCase() === e.target.value.toLowerCase());
+        if(znaleziona) document.getElementById('wz-custom-cena').value = znaleziona.cena.toFixed(2);
+    });
+
+    function dodajDoKoszykaWZ() {
+        const selectEl = document.getElementById('wz-wybor-towaru');
+        if(!selectEl.value) return;
+        const id = parseInt(selectEl.value);
+        const ilosc = parseInt(document.getElementById('wz-ilosc-dodaj').value);
+        const towar = magazyn.find(i => i.id === id);
+
+        if(!towar || ilosc > towar.ilosc) { alert('Brak wystarczającej ilości na magazynie!'); return; }
+
+        koszykWZ.push({
+            id: towar.id,
+            nazwa: towar.nazwa,
+            ilosc: ilosc,
+            cena: towar.cena,
+            wartosc: towar.cena * ilosc,
+            zMagazynu: true
+        });
+        renderKoszykWZ();
+    }
+
+    function dodajCustomDoKoszykaWZ() {
+        const nazwa = document.getElementById('wz-custom-nazwa').value.trim();
+        const ilosc = parseInt(document.getElementById('wz-custom-ilosc').value);
+        const cena = parseFloat(document.getElementById('wz-custom-cena').value) || 0;
+
+        if(!nazwa || isNaN(ilosc)) return;
+
+        const istniejąca = szybkiePozycje.find(s => s.nazwa.toLowerCase() === nazwa.toLowerCase());
+        if(istniejąca) istniejąca.cena = cena;
+        else szybkiePozycje.push({ id: Date.now(), nazwa: nazwa, cena: cena });
+
+        koszykWZ.push({ id: null, nazwa: nazwa, ilosc: ilosc, cena: cena, wartosc: cena * ilosc, zMagazynu: false });
+        
+        saveToCloud();
+        renderKoszykWZ();
+    }
+
+    function renderKoszykWZ() {
+        const tbody = document.getElementById('tabela-koszyk-wz');
+        tbody.innerHTML = '';
+        koszykWZ.forEach((item, index) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.nazwa}</td>
+                    <td><small>${item.zMagazynu ? 'Magazyn' : 'Spoza magazynu'}</small></td>
+                    <td>${item.ilosc}</td>
+                    <td>${item.cena.toFixed(2)} zł</td>
+                    <td>${item.wartosc.toFixed(2)} zł</td>
+                    <td><button onclick="koszykWZ.splice(${index}, 1); renderKoszykWZ();">Usuń</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    function zatwierdzWZ() {
+        if(koszykWZ.length === 0) return alert('Koszyk jest pusty!');
+
+        let nrWZ = edytowanyWZId ? dokumentyWZ.find(w => w.id === edytowanyWZId).numer : `WZ/${new Date().getFullYear()}/${dokumentyWZ.length + 1}`;
+        let dataWZ = edytowanyWZId ? dokumentyWZ.find(w => w.id === edytowanyWZId).data : new Date().toLocaleDateString('pl-PL');
+
+        if(edytowanyWZId) dokumentyWZ = dokumentyWZ.filter(w => w.id !== edytowanyWZId);
+
+        const wz = {
+            id: edytowanyWZId || Date.now(),
+            numer: nrWZ,
+            data: dataWZ,
+            odbiorca: document.getElementById('wz-odbiorca').value || 'Klient Detaliczny',
+            pojazd: document.getElementById('wz-pojazd').value || '-',
+            pozycje: [...koszykWZ]
+        };
+
+        koszykWZ.forEach(p => {
+            if(p.zMagazynu && p.id) {
+                const magItem = magazyn.find(m => m.id === p.id);
+                if(magItem) magItem.ilosc -= p.ilosc;
+            }
+        });
+
+        dokumentyWZ.push(wz);
+        saveToCloud();
+        drukujWZ(wz.id);
+        resetFormularzaWZ();
+    }
+
+    function edytujWZ(id) {
+        const wz = dokumentyWZ.find(w => w.id === id);
+        if(!wz) return;
+
+        edytowanyWZId = id;
+        wz.pozycje.forEach(p => {
+            if(p.zMagazynu && p.id) {
+                const magItem = magazyn.find(m => m.id === p.id);
+                if(magItem) magItem.ilosc += p.ilosc;
+            }
+        });
+
+        document.getElementById('wz-odbiorca').value = wz.odbiorca;
+        document.getElementById('wz-pojazd').value = wz.pojazd;
+        koszykWZ = [...wz.pozycje.map(p => ({ ...p }))];
+
+        document.getElementById('naglowek-wz').innerText = `Edycja Dokumentu ${wz.numer}`;
+        document.getElementById('btn-anuluj-edycje').style.display = 'inline-block';
+
+        switchTab('tab-wz');
+        renderKoszykWZ();
+    }
+
+    function anulujEdycjeWZ() {
+        if(edytowanyWZId) {
+            const wz = dokumentyWZ.find(w => w.id === edytowanyWZId);
+            if(wz) {
+                wz.pozycje.forEach(p => {
+                    if(p.zMagazynu && p.id) {
+                        const magItem = magazyn.find(m => m.id === p.id);
+                        if(magItem) magItem.ilosc -= p.ilosc;
+                    }
+                });
+            }
+        }
+        resetFormularzaWZ();
+    }
+
+    function resetFormularzaWZ() {
+        edytowanyWZId = null;
+        koszykWZ = [];
+        document.getElementById('wz-odbiorca').value = '';
+        document.getElementById('wz-pojazd').value = '';
+        document.getElementById('naglowek-wz').innerText = 'Wystaw Dokument WZ (Wydanie Zewnętrzne)';
+        document.getElementById('btn-anuluj-edycje').style.display = 'none';
+        renderKoszykWZ();
+    }
+
+    function renderHistoria() {
+        const tbody = document.getElementById('tabela-historia-wz');
+        tbody.innerHTML = '';
+        dokumentyWZ.forEach(wz => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${wz.numer}</b></td>
+                    <td>${wz.data}</td>
+                    <td>${wz.odbiorca}</td>
+                    <td>${wz.pojazd}</td>
+                    <td>
+                        <button onclick="edytujWZ(${wz.id})">✏️ Edytuj</button>
+                        <button onclick="drukujWZ(${wz.id})">🖨️ Drukuj</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function renderSzybkie() {
+        const tbody = document.getElementById('tabela-szybkie');
+        tbody.innerHTML = '';
+        szybkiePozycje.forEach(s => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${s.nazwa}</b></td>
+                    <td>${s.cena.toFixed(2)} zł</td>
+                    <td><button onclick="szybkiePozycje = szybkiePozycje.filter(i => i.id !== ${s.id}); saveToCloud();">Usuń</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    function drukujWZ(id) {
+        const wz = dokumentyWZ.find(w => w.id === id);
+        if(!wz) return;
+
+        let html = `
+            <div style="padding: 30px; font-family: sans-serif;">
+                <h1 style="text-align: center;">DOKUMENT WZ: ${wz.numer}</h1>
+                <p><b>Data wystawienia:</b> ${wz.data}</p>
+                <hr>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <div>
+                        <b>Wystawca:</b><br>
+                        <b>${wystawca.nazwa || 'Warsztat'}</b><br>
+                        ${wystawca.adres ? wystawca.adres + '<br>' : ''}
+                        ${wystawca.nip ? 'NIP: ' + wystawca.nip : ''}
+                    </div>
+                    <div>
+                        <b>Odbiorca:</b> ${wz.odbiorca}<br>
+                        <b>Pojazd / VIN:</b> ${wz.pojazd}
+                    </div>
+                </div>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #eee;">
+                            <th style="border:1px solid #ccc; padding:8px;">Lp.</th>
+                            <th style="border:1px solid #ccc; padding:8px;">Nazwa Towaru / Usługi</th>
+                            <th style="border:1px solid #ccc; padding:8px;">Ilość</th>
+                            <th style="border:1px solid #ccc; padding:8px;">Cena netto</th>
+                            <th style="border:1px solid #ccc; padding:8px;">Wartość netto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        let suma = 0;
+        wz.pozycje.forEach((p, idx) => {
+            suma += p.wartosc;
+            html += `
+                <tr>
+                    <td style="border:1px solid #ccc; padding:8px;">${idx + 1}</td>
+                    <td style="border:1px solid #ccc; padding:8px;">${p.nazwa}</td>
+                    <td style="border:1px solid #ccc; padding:8px;">${p.ilosc} szt.</td>
+                    <td style="border:1px solid #ccc; padding:8px;">${p.cena.toFixed(2)} zł</td>
+                    <td style="border:1px solid #ccc; padding:8px;">${p.wartosc.toFixed(2)} zł</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+                <h3 style="text-align: right; margin-top: 15px;">Razem wartość: ${suma.toFixed(2)} zł</h3>
+            </div>
+        `;
+
+        document.getElementById('print-area').innerHTML = html;
+        window.print();
+    }
+</script>
+</body>
+</html>
