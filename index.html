@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Warsztatowy | Chmura Firebase</title>
-    <!-- Biblioteka html2pdf do generowania plików PDF -->
+    <!-- Biblioteka html2pdf do generowania czystych plików PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <!-- ZABEZPIECZENIE HASŁEM -->
@@ -107,7 +107,7 @@
         .stat-card h4 { margin: 0 0 5px 0; color: var(--text); font-size: 0.9rem; }
         .stat-card .value { font-size: 1.6rem; font-weight: bold; color: var(--text); }
 
-        /* FORMATOWANIE WZ I DRUKU */
+        /* RAMKI I WYGLĄD WYDRUKU WZ */
         .wz-dokument-box {
             background: #ffffff !important;
             color: #000000 !important;
@@ -134,8 +134,8 @@
 
         @media print {
             body * { visibility: hidden; }
-            #print-area, #print-area * { visibility: visible; }
-            #print-area { position: absolute; left: 0; top: 0; width: 100%; color: black !important; background: white !important; }
+            #sekcja-podgladu-print, #sekcja-podgladu-print * { visibility: visible; }
+            #sekcja-podgladu-print { position: absolute; left: 0; top: 0; width: 100%; color: black !important; background: white !important; }
             .no-print { display: none !important; }
         }
     </style>
@@ -164,6 +164,11 @@
 </header>
 
 <div class="container no-print">
+
+    <!-- POLE PODGLĄDU I DRUKU DOKUMENTU -->
+    <div id="sekcja-podgladu-print" class="card" style="display: none; border: 2px solid var(--accent);">
+        <div id="print-area"></div>
+    </div>
 
     <!-- ZAKŁADKA 1: MAGAZYN + SKANER -->
     <div id="tab-magazyn" class="tab-content active">
@@ -346,13 +351,6 @@
                 </thead>
                 <tbody id="tabela-historia-wz"></tbody>
             </table>
-        </div>
-    </div>
-
-    <!-- ZAKŁADKA: PODGLĄD POD DRUK / PDF -->
-    <div id="tab-podglad" class="tab-content">
-        <div class="card">
-            <div id="print-area"></div>
         </div>
     </div>
 
@@ -576,7 +574,13 @@
         document.body.classList.add('dark-mode');
     }
 
+    function zamknijPodgladWZ() {
+        document.getElementById('sekcja-podgladu-print').style.display = 'none';
+        document.getElementById('print-area').innerHTML = '';
+    }
+
     function switchTab(tabId, btn) {
+        zamknijPodgladWZ();
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         
@@ -668,7 +672,7 @@
                     <h4>Dokument: ${w.numer} | Data: ${w.data} | Odbiorca: ${w.odbiorca}</h4>
                     <p><b>Pojazd:</b> ${w.pojazd}</p>
                     <ul>
-                        ${(w.pozycje || []).map(p => `<li>${p.nazwa} - ${p.ilosc} szt. x ${parseFloat(p.cena).toFixed(2)} zł</li>`).join('')}
+                        ${(w.pozycje || []).map(p => `<li>${p.nazwa} - ${p.ilosc} szt. x ${parseFloat(p.cena || 0).toFixed(2)} zł</li>`).join('')}
                     </ul>
                 </div>
             `;
@@ -686,7 +690,7 @@
         let liczbaWZ = dokumentyWZ.length;
 
         dokumentyWZ.forEach(wz => {
-            let wartoscDokumentu = (wz.pozycje || []).reduce((acc, item) => acc + (parseFloat(item.wartosc) || 0), 0);
+            let wartoscDokumentu = (wz.pozycje || []).reduce((acc, item) => acc + (parseFloat(item.wartosc) || (parseFloat(item.cena || 0) * item.ilosc)), 0);
             sumaSprzedaz += wartoscDokumentu;
 
             const czyNiezaplacone = wz.statusPlatnosci && wz.statusPlatnosci.includes('Niezapłacone');
@@ -760,9 +764,10 @@
                     <td>${item.nazwa}</td>
                     <td><small>${item.zamienniki || '-'}</small></td>
                     <td>${czyBrak ? '<span class="badge-brak">BRAK (0)</span>' : `<span class="badge-ok">${item.ilosc} szt.</span>`}</td>
-                    <td>${parseFloat(item.cena).toFixed(2)} zł</td>
+                    <td><b>${parseFloat(item.cena || 0).toFixed(2)} zł</b></td>
                     <td>
                         <button onclick="zmienStan(${item.id})">+ / - Stan</button>
+                        <button class="btn-secondary" onclick="zmienCeneMagazyn(${item.id})">✏️ Cena</button>
                         <button class="btn-danger" onclick="usunZMagazynu(${item.id})">Usuń</button>
                     </td>
                 </tr>
@@ -780,6 +785,21 @@
         }
     }
 
+    // EDYCJA CENY ISTNIEJĄCEGO TOWARU W MAGAZYNIE
+    function zmienCeneMagazyn(id) {
+        const item = magazyn.find(i => i.id === id);
+        if(!item) return;
+        const nowaCena = prompt(`Zmień stałą cenę netto (zł) dla: ${item.nazwa}`, item.cena);
+        if(nowaCena !== null) {
+            const val = parseFloat(nowaCena);
+            if(!isNaN(val) && val >= 0) {
+                item.cena = val;
+                saveToCloud();
+                alert('Cena została zaktualizowana!');
+            }
+        }
+    }
+
     function usunZMagazynu(id) {
         if(confirm('Usuń ten towar ze wspólnej bazy?')) {
             magazyn = magazyn.filter(i => i.id !== id);
@@ -792,7 +812,7 @@
         select.innerHTML = '';
         if(magazyn.length === 0) { select.innerHTML = '<option value="">(Brak towarów)</option>'; return; }
         magazyn.forEach(item => {
-            select.innerHTML += `<option value="${item.id}">${item.nazwa} | Stan: ${item.ilosc} szt. | [Cena: ${parseFloat(item.cena).toFixed(2)} zł]</option>`;
+            select.innerHTML += `<option value="${item.id}">${item.nazwa} | Stan: ${item.ilosc} szt. | [Cena: ${parseFloat(item.cena || 0).toFixed(2)} zł]</option>`;
         });
         aktualizujCeneZMagazynu();
     }
@@ -803,7 +823,7 @@
         const id = parseInt(selectEl.value);
         const towar = magazyn.find(i => i.id === id);
         if(towar) {
-            document.getElementById('wz-cena-magazyn-edycja').value = parseFloat(towar.cena).toFixed(2);
+            document.getElementById('wz-cena-magazyn-edycja').value = parseFloat(towar.cena || 0).toFixed(2);
         }
     }
 
@@ -811,13 +831,13 @@
         const datalist = document.getElementById('szybkie-podpowiedzi');
         datalist.innerHTML = '';
         szybkiePozycje.forEach(p => {
-            datalist.innerHTML += `<option value="${p.nazwa}">Cena: ${parseFloat(p.cena).toFixed(2)} zł</option>`;
+            datalist.innerHTML += `<option value="${p.nazwa}">Cena: ${parseFloat(p.cena || 0).toFixed(2)} zł</option>`;
         });
     }
 
     document.getElementById('wz-custom-nazwa').addEventListener('input', function(e) {
         const znaleziona = szybkiePozycje.find(s => s.nazwa.toLowerCase() === e.target.value.toLowerCase());
-        if(znaleziona) document.getElementById('wz-custom-cena').value = parseFloat(znaleziona.cena).toFixed(2);
+        if(znaleziona) document.getElementById('wz-custom-cena').value = parseFloat(znaleziona.cena || 0).toFixed(2);
     });
 
     function dodajDoKoszykaWZ() {
@@ -867,8 +887,8 @@
                     <td>${item.nazwa}</td>
                     <td><small>${item.zMagazynu ? 'Magazyn' : 'Spoza magazynu'}</small></td>
                     <td>${item.ilosc}</td>
-                    <td>${parseFloat(item.cena).toFixed(2)} zł</td>
-                    <td>${parseFloat(item.wartosc).toFixed(2)} zł</td>
+                    <td>${parseFloat(item.cena || 0).toFixed(2)} zł</td>
+                    <td>${parseFloat(item.wartosc || 0).toFixed(2)} zł</td>
                     <td><button class="btn-danger" onclick="koszykWZ.splice(${index}, 1); renderKoszykWZ();">Usuń</button></td>
                 </tr>
             `;
@@ -1006,14 +1026,14 @@
             tbody.innerHTML += `
                 <tr>
                     <td><b>${s.nazwa}</b></td>
-                    <td>${parseFloat(s.cena).toFixed(2)} zł</td>
+                    <td>${parseFloat(s.cena || 0).toFixed(2)} zł</td>
                     <td><button class="btn-danger" onclick="szybkiePozycje = szybkiePozycje.filter(i => i.id !== ${s.id}); saveToCloud();">Usuń</button></td>
                 </tr>
             `;
         });
     }
 
-    // NAPRAWIONY WIDOK DRUKU ORAZ PDF
+    // NAPRAWIONE W 100% GENEROWANIE I PODGLĄD WZ
     function drukujWZ(id) {
         const wz = dokumentyWZ.find(w => w.id === id);
         if(!wz) return alert('Nie znaleziono wybranego dokumentu.');
@@ -1024,15 +1044,16 @@
         const listaPozycji = wz.pozycje || [];
 
         listaPozycji.forEach((p, idx) => {
+            let ilosc = parseInt(p.ilosc) || 1;
             let cena = parseFloat(p.cena) || 0;
-            let wartosc = parseFloat(p.wartosc) || (cena * (p.ilosc || 1));
+            let wartosc = parseFloat(p.wartosc) || (cena * ilosc);
             suma += wartosc;
 
             pozycjeHTML += `
                 <tr>
                     <td style="text-align:center;">${idx + 1}</td>
                     <td>${p.nazwa}</td>
-                    <td style="text-align:center;">${p.ilosc} szt.</td>
+                    <td style="text-align:center;">${ilosc} szt.</td>
                     <td style="text-align:right;">${cena.toFixed(2)} zł</td>
                     <td style="text-align:right;">${wartosc.toFixed(2)} zł</td>
                 </tr>
@@ -1079,12 +1100,16 @@
             <div style="display: flex; gap: 10px; margin-top: 15px;" class="no-print">
                 <button class="btn-primary" onclick="pobierzPDF('${wz.numer.replace(/\//g, '_')}')">📄 Pobierz plik PDF</button>
                 <button class="btn-secondary" onclick="window.print()">🖨️ Drukuj papierowo</button>
-                <button class="btn-secondary" style="background: #c0392b;" onclick="switchTab('tab-historia')">⬅️ Powrót do historii</button>
+                <button class="btn-secondary" style="background: #c0392b;" onclick="zamknijPodgladWZ()">❌ Zamknij podgląd</button>
             </div>
         `;
 
+        const sekcja = document.getElementById('sekcja-podgladu-print');
         document.getElementById('print-area').innerHTML = html;
-        switchTab('tab-podglad');
+        sekcja.style.display = 'block';
+
+        // Automatyczny powrót widoku do sekcji z wydrukiem
+        sekcja.scrollIntoView({ behavior: 'smooth' });
     }
 
     function pobierzPDF(nazwaPliku) {
@@ -1093,7 +1118,7 @@
             margin:       10,
             filename:     `Dokument_${nazwaPliku}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, logging: false },
+            html2canvas:  { scale: 2, useCORS: true },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
         html2pdf().set(opt).from(element).save();
