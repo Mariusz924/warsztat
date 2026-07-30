@@ -1,4 +1,26 @@
-<!DOCTYPE html>
+// --- BRAMKA Z HASŁEM ZAPAMIĘTUJĄCA URZĄDZENIE ---
+(function() {
+    const TAJNE_HASLO = "LUKASZSZMIDT"; // <-- TUTAJ USTAW SWOJE HASŁO
+
+    // Sprawdzamy, czy przeglądarka ma już zapisany zapamiętany dostęp
+    let czyZapamietany = localStorage.getItem('warsztat_dostep_przyznany');
+
+    if (czyZapamietany !== 'tak') {
+        let podaneHaslo = prompt("Podaj hasło dostępu do systemu warsztatowego:");
+        
+        if (podaneHaslo === TAJNE_HASLO) {
+            // Zapisujemy dostęp w pamięci przeglądarki NA STAŁE
+            localStorage.setItem('warsztat_dostep_przyznany', 'tak');
+            alert("Hasło poprawne! Urządzenie zostało zapamiętane.");
+        } else {
+            alert("Błędne hasło! Brak dostępu.");
+            // Ukrywamy całą stronę w przypadku złego hasła
+            document.body.innerHTML = "<div style='text-align:center; padding:50px; font-family:sans-serif;'><h2>❌ Brak dostępu do systemu</h2><p>Odśwież stronę, aby spróbować ponownie.</p></div>";
+            window.stop(); // Zatrzymanie ładowania reszty aplikacji
+        }
+    }
+})();
+        <!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
@@ -8,38 +30,38 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
-            --primary: #1a1a1a;
-            --accent: #111111;
-            --bg: #f4f6f7;
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --bg: #f8f9fa;
             --panel: #ffffff;
-            --border: #222222; /* Ciemne, czarne ramki */
-            --text: #111111;
-            --danger: #c0392b;
-            --warning-bg: #fdf2e9;
+            --border: #e0e0e0; /* Normalne, delikatne ramki dla aplikacji */
+            --text: #333333;
+            --danger: #e74c3c;
+            --warning-bg: #fff3cd;
         }
 
         /* TRYB CIEMNY (DARK MODE) */
         body.dark-mode {
-            --primary: #0a0a0a;
-            --accent: #000000;
+            --primary: #1a252f;
+            --accent: #2980b9;
             --bg: #121212;
             --panel: #1e1e1e;
-            --border: #555555; /* Wyraziste, ciemnoszare ramki w trybie ciemnym */
+            --border: #333333;
             --text: #f0f0f0;
             --danger: #e74c3c;
             --warning-bg: #2c1f1d;
         }
 
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: var(--bg); color: var(--text); transition: background-color 0.3s, color 0.3s; }
-        header { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid var(--border); }
+        header { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         header h1 { margin: 0; font-size: 1.4rem; }
         nav { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
-        nav button, .dropdown-btn { background: #333333; border: 1px solid var(--border); color: white; padding: 8px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 0.9rem; }
-        nav button.active { background: var(--accent); border-color: #ffffff; color: #ffffff; text-decoration: underline; }
+        nav button, .dropdown-btn { background: rgba(255,255,255,0.1); border: none; color: white; padding: 8px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 0.9rem; }
+        nav button.active { background: var(--accent); }
         
         /* ROZWIJANE MENU (DROPDOWN) */
         .dropdown { position: relative; display: inline-block; }
-        .dropdown-content { display: none; position: absolute; background-color: var(--panel); min-width: 200px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.3); z-index: 100; border: 2px solid var(--border); border-radius: 4px; top: 100%; left: 0; }
+        .dropdown-content { display: none; position: absolute; background-color: var(--panel); min-width: 200px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 100; border: 1px solid var(--border); border-radius: 4px; top: 100%; left: 0; }
         .dropdown-content button { color: var(--text); background: none; padding: 10px 15px; text-decoration: none; display: block; width: 100%; text-align: left; border: none; border-bottom: 1px solid var(--border); border-radius: 0; font-weight: normal; }
         .dropdown-content button:last-child { border-bottom: none; }
         .dropdown-content button:hover { background-color: var(--bg); font-weight: bold; }
@@ -49,9 +71,11 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        .card { background: var(--panel); border: 2px solid var(--border); border-radius: 6px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h2 { margin-top: 0; color: var(--text); border-bottom: 2px solid var(--border); padding-bottom: 10px; }
-        h3 { color: var(--text); margin-top: 15px; margin-bottom: 10px; }
+        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        h2 { margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
+        body.dark-mode h2 { color: var(--text); }
+        h3 { color: var(--primary); margin-top: 15px; margin-bottom: 10px; }
+        body.dark-mode h3 { color: var(--text); }
 
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
@@ -60,14 +84,13 @@
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
 
-        button.btn-primary { background: var(--accent); color: white; border: 1px solid var(--border); padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        button.btn-primary:hover { background: #333333; }
-        button.btn-secondary { background: #555555; color: white; border: 1px solid var(--border); padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        button.btn-danger { background: var(--danger); color: white; border: 1px solid var(--border); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button.btn-primary { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button.btn-secondary { background: #7f8c8d; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button.btn-danger { background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { border: 1px solid var(--border); padding: 10px; text-align: left; }
-        th { background-color: var(--primary); color: white; border-bottom: 2px solid var(--border); }
+        th { background-color: var(--primary); color: white; }
 
         tr.brak-na-stanie { background-color: var(--warning-bg); }
         .badge-brak { background-color: var(--danger); color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; display: inline-block; }
@@ -77,14 +100,35 @@
         .status-zaplacone { background: #27ae60; color: white; }
         .status-niezaplacone { background: #c0392b; color: white; }
 
-        .section-box { background: rgba(0,0,0,0.03); border: 1px dashed var(--border); padding: 15px; border-radius: 4px; margin-bottom: 15px; }
+        .section-box { background: rgba(0,0,0,0.02); border: 1px dashed var(--border); padding: 15px; border-radius: 4px; margin-bottom: 15px; }
         #status-sync { font-size: 0.85rem; background: #27ae60; color: white; padding: 4px 10px; border-radius: 12px; }
 
-        .stat-card { background: var(--panel); border: 2px solid var(--border); border-left: 6px solid var(--accent); padding: 15px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stat-card { background: var(--panel); border: 1px solid var(--border); border-left: 5px solid var(--accent); padding: 15px; border-radius: 4px; }
         .stat-card h4 { margin: 0 0 5px 0; color: var(--text); font-size: 0.9rem; }
         .stat-card .value { font-size: 1.6rem; font-weight: bold; color: var(--text); }
 
         #print-area { margin-top: 20px; }
+
+        /* STYLE DLA SAMEGO WYDRUKU / DOKUMENTU WZ (WYRAZISTE RAMKI TYLKO TUTAJ) */
+        .wz-dokument-box {
+            background: white !important;
+            color: black !important;
+            padding: 20px;
+            border: 2px solid #111111 !important;
+            border-radius: 4px;
+        }
+        .wz-dokument-box table {
+            border-collapse: collapse !important;
+            width: 100%;
+        }
+        .wz-dokument-box th, .wz-dokument-box td {
+            border: 2px solid #111111 !important; /* Wyraziste czarne ramki na WZ */
+            padding: 8px !important;
+        }
+        .wz-dokument-box th {
+            background-color: #111111 !important;
+            color: white !important;
+        }
 
         @media print {
             body * { visibility: hidden; }
@@ -443,17 +487,35 @@
         </div>
     </div>
 
-    <!-- WIDOK PODGLĄDU I DRUKU (WYŚWIETLA SIĘ W KONTENERZE) -->
-    <div id="podglad-wz-container" class="card" style="display: none; border: 3px solid var(--border);">
+    <!-- WIDOK PODGLĄDU I DRUKU -->
+    <div id="podglad-wz-container" class="card" style="display: none;">
         <div id="print-area"></div>
     </div>
 
 </div>
 
-<!-- SKRYPTY FIREBASE DO PRACY W CHMURZE -->
+<!-- LOGIKA APLIKACJI ORAZ POŁĄCZENIE Z FIREBASE -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // BRAMKA Z HASŁEM (ZAPAMIĘTUJĄCA URZĄDZENIE NA STAŁE)
+    (function() {
+        const TAJNE_HASLO = "warsztat2026"; // <-- TUTAJ WPISZ SWOJE HASŁO
+        let czyZapamietany = localStorage.getItem('warsztat_dostep_przyznany');
+
+        if (czyZapamietany !== 'tak') {
+            let podaneHaslo = prompt("Podaj hasło dostępu do systemu warsztatowego:");
+            if (podaneHaslo === TAJNE_HASLO) {
+                localStorage.setItem('warsztat_dostep_przyznany', 'tak');
+                alert("Hasło poprawne! Urządzenie zostało zapamiętane.");
+            } else {
+                alert("Błędne hasło! Brak dostępu.");
+                document.body.innerHTML = "<div style='text-align:center; padding:50px; font-family:sans-serif;'><h2>❌ Brak dostępu do systemu</h2><p>Odśwież stronę, aby spróbować ponownie.</p></div>";
+                window.stop();
+            }
+        }
+    })();
 
     const firebaseConfig = {
         apiKey: "AIzaSyCDa9DNH1DMqe9-egc4gKzuF7s451mke54",
@@ -880,13 +942,13 @@
         renderKoszykWZ();
     }
 
-    // USUWANIE STARYCH DOKUMENTÓW WZ
+    // USUWANIE DOKUMENTÓW WZ
     function usunWZ(id) {
         const wz = dokumentyWZ.find(w => w.id === id);
         if(!wz) return;
 
         if(confirm(`Czy na pewno chcesz usunąć dokument ${wz.numer}?`)) {
-            const przywroc Stany = confirm("Czy chcesz przywrócić użyte części z tego dokumentu z powrotem na stan magazynowy?");
+            const przywrocStany = confirm("Czy chcesz przywrócić użyte części z tego dokumentu z powrotem na stan magazynowy?");
             
             if(przywrocStany) {
                 wz.pozycje.forEach(p => {
@@ -964,16 +1026,16 @@
         });
     }
 
-    // DRUKOWANIE ORAZ POBIERANIE DOKUMENTU DO PLIKU PDF
+    // DRUKOWANIE Z WYRAZISTYMI RAMKAMI DLA DOKUMENTU WZ
     function drukujWZ(id) {
         const wz = dokumentyWZ.find(w => w.id === id);
         if(!wz) return;
 
         let html = `
-            <div id="pdf-content" style="padding: 20px; font-family: sans-serif; background: white; color: black;">
+            <div id="pdf-content" class="wz-dokument-box">
                 <h1 style="text-align: center; margin-bottom: 5px;">DOKUMENT WZ: ${wz.numer}</h1>
                 <p style="text-align: center; margin-top: 0;"><b>Data wystawienia:</b> ${wz.data} | <b>Status:</b> ${wz.statusPlatnosci || 'Zapłacone'}</p>
-                <hr style="border: 1px solid #222;">
+                <hr style="border: 1px solid #111;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
                     <div>
                         <b>Wystawca:</b><br>
@@ -986,14 +1048,14 @@
                         <b>Pojazd / VIN:</b> ${wz.pojazd}
                     </div>
                 </div>
-                <table style="width: 100%; border-collapse: collapse;">
+                <table>
                     <thead>
-                        <tr style="background: #eee;">
-                            <th style="border:1px solid #222; padding:8px;">Lp.</th>
-                            <th style="border:1px solid #222; padding:8px;">Nazwa Towaru / Usługi</th>
-                            <th style="border:1px solid #222; padding:8px;">Ilość</th>
-                            <th style="border:1px solid #222; padding:8px;">Cena netto</th>
-                            <th style="border:1px solid #222; padding:8px;">Wartość netto</th>
+                        <tr>
+                            <th>Lp.</th>
+                            <th>Nazwa Towaru / Usługi</th>
+                            <th>Ilość</th>
+                            <th>Cena netto</th>
+                            <th>Wartość netto</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1004,11 +1066,11 @@
             suma += p.wartosc;
             html += `
                 <tr>
-                    <td style="border:1px solid #222; padding:8px;">${idx + 1}</td>
-                    <td style="border:1px solid #222; padding:8px;">${p.nazwa}</td>
-                    <td style="border:1px solid #222; padding:8px;">${p.ilosc} szt.</td>
-                    <td style="border:1px solid #222; padding:8px;">${p.cena.toFixed(2)} zł</td>
-                    <td style="border:1px solid #222; padding:8px;">${p.wartosc.toFixed(2)} zł</td>
+                    <td>${idx + 1}</td>
+                    <td>${p.nazwa}</td>
+                    <td>${p.ilosc} szt.</td>
+                    <td>${p.cena.toFixed(2)} zł</td>
+                    <td>${p.wartosc.toFixed(2)} zł</td>
                 </tr>
             `;
         });
