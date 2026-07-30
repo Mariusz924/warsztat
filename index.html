@@ -1,26 +1,4 @@
-// --- BRAMKA Z HASŁEM ZAPAMIĘTUJĄCA URZĄDZENIE ---
-(function() {
-    const TAJNE_HASLO = "LUKASZSZMIDT"; // <-- TUTAJ USTAW SWOJE HASŁO
-
-    // Sprawdzamy, czy przeglądarka ma już zapisany zapamiętany dostęp
-    let czyZapamietany = localStorage.getItem('warsztat_dostep_przyznany');
-
-    if (czyZapamietany !== 'tak') {
-        let podaneHaslo = prompt("Podaj hasło dostępu do systemu warsztatowego:");
-        
-        if (podaneHaslo === TAJNE_HASLO) {
-            // Zapisujemy dostęp w pamięci przeglądarki NA STAŁE
-            localStorage.setItem('warsztat_dostep_przyznany', 'tak');
-            alert("Hasło poprawne! Urządzenie zostało zapamiętane.");
-        } else {
-            alert("Błędne hasło! Brak dostępu.");
-            // Ukrywamy całą stronę w przypadku złego hasła
-            document.body.innerHTML = "<div style='text-align:center; padding:50px; font-family:sans-serif;'><h2>❌ Brak dostępu do systemu</h2><p>Odśwież stronę, aby spróbować ponownie.</p></div>";
-            window.stop(); // Zatrzymanie ładowania reszty aplikacji
-        }
-    }
-})();
-        <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
@@ -28,13 +6,36 @@
     <title>System Warsztatowy | Chmura Firebase</title>
     <!-- Biblioteka html2pdf do generowania czystych plików PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- ZABEZPIECZENIE HASŁEM (WYKONUJE SIĘ PRZED WCZYTANIEM STRONY) -->
+    <script>
+        (function() {
+            const TAJNE_HASLO = "MARIUSZSZMIDT"; // <-- TUTAJ WPISZ SWOJE HASŁO
+            let czyZapamietany = localStorage.getItem('warsztat_dostep_przyznany');
+
+            if (czyZapamietany !== 'tak') {
+                let podaneHaslo = prompt("Podaj hasło dostępu do systemu warsztatowego:");
+                if (podaneHaslo === TAJNE_HASLO) {
+                    localStorage.setItem('warsztat_dostep_przyznany', 'tak');
+                    alert("Hasło poprawne! Urządzenie zostało zapamiętane.");
+                } else {
+                    alert("Błędne hasło! Brak dostępu.");
+                    document.addEventListener("DOMContentLoaded", function() {
+                        document.body.innerHTML = "<div style='text-align:center; padding:100px; font-family:sans-serif;'><h2>❌ Brak dostępu do systemu</h2><p>Odśwież stronę i podaj poprawne hasło.</p></div>";
+                    });
+                    window.stop();
+                }
+            }
+        })();
+    </script>
+
     <style>
         :root {
             --primary: #2c3e50;
             --accent: #3498db;
             --bg: #f8f9fa;
             --panel: #ffffff;
-            --border: #e0e0e0; /* Normalne, delikatne ramki dla aplikacji */
+            --border: #e0e0e0; /* Standardowe ramki dla reszty aplikacji */
             --text: #333333;
             --danger: #e74c3c;
             --warning-bg: #fff3cd;
@@ -109,7 +110,7 @@
 
         #print-area { margin-top: 20px; }
 
-        /* STYLE DLA SAMEGO WYDRUKU / DOKUMENTU WZ (WYRAZISTE RAMKI TYLKO TUTAJ) */
+        /* WYRAZISTE RAMKI DLA SATEGO DOKUMENTU WZ (WYDRUK/PODGLĄD) */
         .wz-dokument-box {
             background: white !important;
             color: black !important;
@@ -122,7 +123,7 @@
             width: 100%;
         }
         .wz-dokument-box th, .wz-dokument-box td {
-            border: 2px solid #111111 !important; /* Wyraziste czarne ramki na WZ */
+            border: 2px solid #111111 !important; /* Ciemne, czyste ramki tylko na dokumencie WZ */
             padding: 8px !important;
         }
         .wz-dokument-box th {
@@ -147,7 +148,7 @@
         <button class="tab-btn" onclick="switchTab('tab-wz', this)">Wystaw WZ</button>
         <button class="tab-btn" onclick="switchTab('tab-historia', this)">Historia WZ</button>
 
-        <!-- ROZWIJANE MENU DLA ZAKŁADEK PODRĘCZNYCH -->
+        <!-- ROZWIJANE MENU -->
         <div class="dropdown">
             <button class="dropdown-btn tab-btn" id="btn-dropdown">Klienci i Raporty ▾</button>
             <div class="dropdown-content">
@@ -498,24 +499,6 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    // BRAMKA Z HASŁEM (ZAPAMIĘTUJĄCA URZĄDZENIE NA STAŁE)
-    (function() {
-        const TAJNE_HASLO = "warsztat2026"; // <-- TUTAJ WPISZ SWOJE HASŁO
-        let czyZapamietany = localStorage.getItem('warsztat_dostep_przyznany');
-
-        if (czyZapamietany !== 'tak') {
-            let podaneHaslo = prompt("Podaj hasło dostępu do systemu warsztatowego:");
-            if (podaneHaslo === TAJNE_HASLO) {
-                localStorage.setItem('warsztat_dostep_przyznany', 'tak');
-                alert("Hasło poprawne! Urządzenie zostało zapamiętane.");
-            } else {
-                alert("Błędne hasło! Brak dostępu.");
-                document.body.innerHTML = "<div style='text-align:center; padding:50px; font-family:sans-serif;'><h2>❌ Brak dostępu do systemu</h2><p>Odśwież stronę, aby spróbować ponownie.</p></div>";
-                window.stop();
-            }
-        }
-    })();
 
     const firebaseConfig = {
         apiKey: "AIzaSyCDa9DNH1DMqe9-egc4gKzuF7s451mke54",
