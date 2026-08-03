@@ -107,7 +107,6 @@
         .stat-card h4 { margin: 0 0 5px 0; color: var(--text); font-size: 0.9rem; }
         .stat-card .value { font-size: 1.6rem; font-weight: bold; color: var(--text); }
 
-        /* RAMKI I WYGLĄD WYDRUKU WZ */
         .wz-dokument-box {
             background: #ffffff !important;
             color: #000000 !important;
@@ -117,20 +116,9 @@
             font-family: Arial, sans-serif;
             margin-bottom: 20px;
         }
-        .wz-dokument-box table {
-            border-collapse: collapse !important;
-            width: 100%;
-            margin-top: 20px;
-        }
-        .wz-dokument-box th, .wz-dokument-box td {
-            border: 1px solid #000000 !important;
-            padding: 8px !important;
-            color: #000000 !important;
-        }
-        .wz-dokument-box th {
-            background-color: #f2f2f2 !important;
-            font-weight: bold;
-        }
+        .wz-dokument-box table { border-collapse: collapse !important; width: 100%; margin-top: 20px; }
+        .wz-dokument-box th, .wz-dokument-box td { border: 1px solid #000000 !important; padding: 8px !important; color: #000000 !important; }
+        .wz-dokument-box th { background-color: #f2f2f2 !important; font-weight: bold; }
 
         @media print {
             body * { visibility: hidden; }
@@ -147,7 +135,9 @@
     <nav>
         <button class="tab-btn active" onclick="switchTab('tab-magazyn', this)">Magazyn Części</button>
         <button class="tab-btn" onclick="switchTab('tab-wz', this)">Wystaw WZ</button>
+        <button class="tab-btn" onclick="switchTab('tab-import', this)" style="background: #27ae60;">📥 Import WZ Hurtowni</button>
         <button class="tab-btn" onclick="switchTab('tab-historia', this)">Historia WZ</button>
+        <button class="tab-btn" onclick="switchTab('tab-klimatyzacja', this)" style="background: #0284c7;">❄️ Klimatyzacja Baza</button>
 
         <div class="dropdown">
             <button class="dropdown-btn tab-btn" id="btn-dropdown">Klienci i Raporty ▾</button>
@@ -168,6 +158,74 @@
     <!-- POLE PODGLĄDU I DRUKU DOKUMENTU -->
     <div id="sekcja-podgladu-print" class="card" style="display: none; border: 2px solid var(--accent);">
         <div id="print-area"></div>
+    </div>
+
+    <!-- ZAKŁADKA: BAZA KLIMATYZACJI (NOWOŚĆ) -->
+    <div id="tab-klimatyzacja" class="tab-content">
+        <div class="card">
+            <h2>❄️ Pełna Europejska Baza Napełniania Klimatyzacji</h2>
+            <p>Dostęp do oficjalnych danych dotyczących ilości czynnika chłodniczego (R134a / R1234yf) oraz olejów sprężarkowych (PAG / POE) dla wszystkich marek i modeli samochodów z Europy.</p>
+            
+            <div class="section-box" style="text-align: center; padding: 30px; background: rgba(2, 132, 199, 0.05); border: 2px dashed #0284c7;">
+                <h3 style="margin-top: 0; color: #0284c7;">🚀 Baza Danych MAHLE A/C Tool (Europejska)</h3>
+                <p>Kliknij poniższy przycisk, aby otworzyć oficjalną, corocznie aktualizowaną wyszukiwarkę pojemności czynnika i oleju w nowym oknie:</p>
+                <a href="https://ac-tool.mahle.com" target="_blank" class="btn-primary" style="display: inline-block; text-decoration: none; font-size: 1.1rem; padding: 14px 28px; background: #0284c7; border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    🌐 Otwórz pełną bazę klimatyzacji (MAHLE A/C Tool)
+                </a>
+            </div>
+
+            <div class="section-box">
+                <h3>📚 Pobierz oficjalne tabele pojemności w plikach PDF (Do wydruku do warsztatu)</h3>
+                <p>Możesz pobierać i zapisać na dysku kompletne spisy napełnień klimatyzacji przygotowane przez czołowych producentów:</p>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
+                    <a href="https://www.nrf.eu/pl/filling-chart/" target="_blank" class="btn-secondary" style="text-decoration: none; padding: 10px 15px;">📄 Pobierz Tabela Napełniania NRF (PDF)</a>
+                    <a href="https://www.nissens.com/ac-fillings" target="_blank" class="btn-secondary" style="text-decoration: none; padding: 10px 15px;">📄 Pobierz Katalog Nissens AC Fillings (PDF)</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ZAKŁADKA: IMPORT Z HURTOWNI -->
+    <div id="tab-import" class="tab-content">
+        <div class="card">
+            <h2>📥 Szybki Import Części z WZ Hurtowni (Moto-Profil / izimoto)</h2>
+            <p>Dzięki tej sekcji nie musisz wpisywać części ręcznie. Wybierz dogodną opcję poniżej:</p>
+
+            <div class="section-box">
+                <h3>Sposób 1: Wklej treść pozycji z dokumentu hurtowni</h3>
+                <div class="form-group">
+                    <label>Zaznacz i skopiuj tekst pozycji ze strony hurtowni, a następnie wklej poniżej:</label>
+                    <textarea id="import-tekst-area" rows="6" placeholder="Wklej tutaj tekst z hurtowni..."></textarea>
+                </div>
+                <button class="btn-primary" onclick="przetworzWklejonyTekst()">🔍 Analizuj i Dodaj Pozycje do Magazynu</button>
+            </div>
+
+            <div class="section-box">
+                <h3>Sposób 2: Wgraj pobrany plik CSV z hurtowni</h3>
+                <div class="form-group">
+                    <label>Pobierz plik ze strony hurtowni klikając 'Eksport do CSV', a następnie wybierz go tutaj:</label>
+                    <input type="file" id="import-csv-file" accept=".csv, .txt">
+                </div>
+                <button class="btn-secondary" onclick="wgrajPlikCSV()">Wczytaj plik CSV</button>
+            </div>
+
+            <div id="import-wyniki-box" style="display:none; margin-top: 20px;">
+                <h3>Wykryte części do dodania:</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Kod SKU</th>
+                            <th>Nazwa części</th>
+                            <th>Ilość</th>
+                            <th>Cena netto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-import-podglad"></tbody>
+                </table>
+                <br>
+                <button class="btn-primary" onclick="zatwierdzImportDoMagazynu()" style="font-size:1.1rem; padding:12px 20px;">✅ Zaimportuj wszystkie części do Magazynu</button>
+            </div>
+        </div>
     </div>
 
     <!-- ZAKŁADKA 1: MAGAZYN + SKANER -->
@@ -525,6 +583,7 @@
     window.wystawca = { nazwa: 'Warsztat Samochodowy', adres: '', nip: '' };
     window.koszykWZ = [];
     window.edytowanyWZId = null;
+    window.tempImportList = [];
 
     onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
@@ -593,6 +652,133 @@
         if(tabId === 'tab-raporty') renderRaporty();
         if(tabId === 'tab-szybkie') renderSzybkie();
         if(tabId === 'tab-ustawienia') wczytajWystawce();
+    }
+
+    // SYSTEM AUTOMATYCZNEGO IMPORTU WZ Z HURTOWNI
+    function przetworzWklejonyTekst() {
+        const tekst = document.getElementById('import-tekst-area').value;
+        if(!tekst.trim()) return alert('Wklej najpierw tekst z hurtowni!');
+
+        tempImportList = [];
+        const linie = tekst.split('\n');
+        
+        let aktualnyKod = '';
+        let aktualnaNazwa = '';
+        let aktualnaIlosc = 1;
+        let aktualnaCena = 0;
+
+        linie.forEach(linia => {
+            const l = linia.trim();
+            if(l.startsWith('Kod:')) {
+                aktualnyKod = l.replace('Kod:', '').split('/')[0].trim();
+            } else if(l.includes('Ilość:') || l.includes('Cena:')) {
+                const iloscMatch = l.match(/Ilość:\s*(\d+)/i);
+                if(iloscMatch) aktualnaIlosc = parseInt(iloscMatch[1]);
+
+                const cenaMatch = l.match(/Cena:\s*([\d\s,.]+)/i);
+                if(cenaMatch) {
+                    let cStr = cenaMatch[1].replace('zł','').replace(/\s/g,'').replace(',','.');
+                    aktualnaCena = parseFloat(cStr) || 0;
+                }
+
+                if(aktualnyKod || aktualnaNazwa) {
+                    tempImportList.push({
+                        sku: aktualnyKod || ('SKU-' + Date.now()),
+                        nazwa: aktualnaNazwa || 'Część zamienna',
+                        ilosc: aktualnaIlosc,
+                        cena: aktualnaCena
+                    });
+                    aktualnyKod = '';
+                    aktualnaNazwa = '';
+                }
+            } else if(l.length > 2 && !l.includes('Na fakturze:') && !l.includes('Numer magazynowy:')) {
+                if(!aktualnaNazwa) aktualnaNazwa = l;
+                else aktualnaNazwa += ' ' + l;
+            }
+        });
+
+        renderPodgladImportu();
+    }
+
+    function wgrajPlikCSV() {
+        const fileInput = document.getElementById('import-csv-file');
+        if(!fileInput.files.length) return alert('Wybierz najpierw plik CSV!');
+        
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            const lines = e.target.result.split('\n');
+            tempImportList = [];
+
+            lines.forEach((line, idx) => {
+                if(idx === 0 || !line.trim()) return; 
+                const cols = line.split(/[,;]/);
+                if(cols.length >= 3) {
+                    tempImportList.push({
+                        sku: cols[0] ? cols[0].replace(/"/g,'').trim() : 'SKU-'+Date.now(),
+                        nazwa: cols[1] ? cols[1].replace(/"/g,'').trim() : 'Część z CSV',
+                        ilosc: parseInt(cols[2]) || 1,
+                        cena: parseFloat(cols[3] ? cols[3].replace(',','.').replace(/"/g,'') : 0) || 0
+                    });
+                }
+            });
+            renderPodgladImportu();
+        };
+
+        reader.readAsText(file);
+    }
+
+    function renderPodgladImportu() {
+        const tbody = document.getElementById('tabela-import-podglad');
+        tbody.innerHTML = '';
+        if(tempImportList.length === 0) {
+            alert('Nie udało się wyciągnąć pozycji. Upewnij się, że wklejony tekst zawiera kody i ceny.');
+            return;
+        }
+
+        tempImportList.forEach(item => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${item.sku}</b></td>
+                    <td>${item.nazwa}</td>
+                    <td>${item.ilosc} szt.</td>
+                    <td>${item.cena.toFixed(2)} zł</td>
+                </tr>
+            `;
+        });
+        document.getElementById('import-wyniki-box').style.display = 'block';
+    }
+
+    function zatwierdzImportDoMagazynu() {
+        let dodane = 0;
+        let zaktualizowane = 0;
+
+        tempImportList.forEach(imp => {
+            const istniejący = magazyn.find(m => m.sku.toLowerCase() === imp.sku.toLowerCase());
+            if(istniejący) {
+                istniejący.ilosc += imp.ilosc;
+                istniejący.cena = imp.cena; 
+                zaktualizowane++;
+            } else {
+                magazyn.push({
+                    id: Date.now() + Math.random(),
+                    sku: imp.sku,
+                    nazwa: imp.nazwa,
+                    zamienniki: '',
+                    ilosc: imp.ilosc,
+                    cena: imp.cena
+                });
+                dodane++;
+            }
+        });
+
+        saveToCloud();
+        alert(`Sukces! Dodano nowych części: ${dodane}, zaktualizowano stanów/cen: ${zaktualizowane}`);
+        tempImportList = [];
+        document.getElementById('import-wyniki-box').style.display = 'none';
+        document.getElementById('import-tekst-area').value = '';
+        switchTab('tab-magazyn');
     }
 
     function skanujKod(kod) {
@@ -785,18 +971,13 @@
         }
     }
 
-    // EDYCJA CENY ISTNIEJĄCEGO TOWARU W MAGAZYNIE
     function zmienCeneMagazyn(id) {
         const item = magazyn.find(i => i.id === id);
         if(!item) return;
-        const nowaCena = prompt(`Zmień stałą cenę netto (zł) dla: ${item.nazwa}`, item.cena);
+        const nowaCena = prompt(`Zmień cenę netto (zł) dla: ${item.nazwa}`, item.cena);
         if(nowaCena !== null) {
             const val = parseFloat(nowaCena);
-            if(!isNaN(val) && val >= 0) {
-                item.cena = val;
-                saveToCloud();
-                alert('Cena została zaktualizowana!');
-            }
+            if(!isNaN(val) && val >= 0) { item.cena = val; saveToCloud(); alert('Cena zmieniona!'); }
         }
     }
 
@@ -1033,14 +1214,12 @@
         });
     }
 
-    // NAPRAWIONE W 100% GENEROWANIE I PODGLĄD WZ
     function drukujWZ(id) {
         const wz = dokumentyWZ.find(w => w.id === id);
         if(!wz) return alert('Nie znaleziono wybranego dokumentu.');
 
         let pozycjeHTML = '';
         let suma = 0;
-
         const listaPozycji = wz.pozycje || [];
 
         listaPozycji.forEach((p, idx) => {
@@ -1107,8 +1286,6 @@
         const sekcja = document.getElementById('sekcja-podgladu-print');
         document.getElementById('print-area').innerHTML = html;
         sekcja.style.display = 'block';
-
-        // Automatyczny powrót widoku do sekcji z wydrukiem
         sekcja.scrollIntoView({ behavior: 'smooth' });
     }
 
